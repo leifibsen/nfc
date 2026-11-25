@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Skuffetann – produkt-ID (demo 2)</title>
-<!-- NFC demo 2, version 261125b -->
+<!-- NFC demo 2, version 261125c -->
 <style>
   :root {
     --bg: #f4f3ef; --kort: #ffffff; --tekst: #1f1d1a; --svag: #6b665d;
@@ -37,6 +37,8 @@
   .fejl { background: var(--fejl-bg); color: var(--fejl); }
   .graa { background: var(--graa-bg); color: var(--graa); }
   .vent { background: var(--kort); color: var(--svag); }
+  #statusTekst { font-size: 15px; margin-bottom: 4px; }
+  #statusTekst:empty { display: none; }
   .uid { font-family: ui-monospace, Consolas, monospace; font-size: 15px; word-break: break-all; opacity: .85; }
   dl { margin: 0; }
   .raekke { display: flex; gap: 12px; padding: 9px 0; border-top: 1px solid var(--linje); }
@@ -71,6 +73,7 @@
   <section id="status" class="status vent">
     <div class="ikon">⏳</div>
     <h2>Slår opp tannen…</h2>
+    <p id="statusTekst"></p>
     <p class="uid" id="statusUid"></p>
   </section>
 
@@ -120,12 +123,13 @@
     return d;
   }
 
-  function visStatus(klasse, ikon, titel, tekst) {
+  function visStatus(klasse, ikon, titel, tekst, uid) {
     const s = $("status");
     s.className = "status " + klasse;
     s.querySelector(".ikon").textContent = ikon;
     s.querySelector("h2").textContent = titel;
-    $("statusUid").textContent = tekst || "";
+    $("statusTekst").textContent = tekst || "";
+    $("statusUid").textContent = uid || "";
   }
 
   function dato(v) {
@@ -159,10 +163,10 @@
     $("statusUid").textContent = chipId;
     try {
       const d = await rpc("tand_opslag", { p_id: chipId, p_browser: navigator.userAgent });
-      if (d.fejl) { visStatus("fejl", "⚠️", d.fejl, chipId); return; }
+      if (d.fejl) { visStatus("fejl", "⚠️", d.fejl, "", chipId); return; }
 
       if (!d.fundet) {
-        visStatus("fejl", "⛔", "Ukjent tann", "Ikke registrert hos produsent – mulig kopi. " + d.uid);
+        visStatus("fejl", "⛔", "Ukjent tann", "Ikke registrert hos produsent – mulig kopi.", d.uid);
         $("data").classList.add("skjult");
         $("skjema").classList.add("skjult");
         return;
@@ -178,15 +182,19 @@
       if (d.status === "udskiftet" || d.status === "kasseret") {
         visStatus("graa", "⚠️",
           d.status === "udskiftet" ? "Tannen er meldt utskiftet" : "Tannen er kassert",
-          "Denne tannen skal ikke være i bruk. Kontakt forhandler hvis den sitter på en maskin. " + d.uid);
+          "Denne tannen skal ikke være i bruk. Kontakt forhandler hvis den sitter på en maskin.", d.uid);
+      } else if (d.registreret) {
+        visStatus("ok", "✅", "Ekte tann – garanti registrert",
+          (d.garanti_aktiv ? "Garanti aktiv til " : "Garanti utløpt ") + dato(d.garanti_slut) + ".", d.uid);
       } else {
-        visStatus("ok", "✅", "Ekte tann – registrert hos produsent", d.uid);
+        visStatus("ok", "✅", "Ekte tann – ikke registrert ennå",
+          "Produsert og kontrollert hos produsent. Registrer garantien nedenfor.", d.uid);
       }
 
       if (d.registreret) {
         felter.push(
           ["Garanti", d.garanti_aktiv ? "Aktiv til " + dato(d.garanti_slut) : "Utløpt " + dato(d.garanti_slut)],
-          ["Registrert", dato(d.garanti_start) + (d.kunde ? " (" + d.kunde + ")" : "")],
+          ["Registrert av kunde", dato(d.garanti_start) + (d.kunde ? " (" + d.kunde + ")" : "")],
           ["Maskin", d.maskine || "–"],
         );
         $("skjema").classList.add("skjult");
@@ -197,7 +205,7 @@
       felter.push(["Skannet på web", d.web_scanninger + " gang(er)"]);
       visFelter(felter);
     } catch (e) {
-      visStatus("fejl", "⚠️", "Oppslaget feilet", String(e.message || e));
+      visStatus("fejl", "⚠️", "Oppslaget feilet", String(e.message || e), chipId);
     }
   }
 
@@ -228,7 +236,7 @@
       }
       melding.textContent = "";
       await slaaOpp();
-      visStatus("ok", "🎉", "Garanti registrert", "Gyldig til " + dato(d.garanti_slut) + ". Takk!");
+      visStatus("ok", "🎉", "Garanti registrert", "Gyldig til " + dato(d.garanti_slut) + ". Takk!", d.uid);
     } catch (e) {
       melding.className = "melding fejl";
       melding.textContent = "Feil: " + (e.message || e);
