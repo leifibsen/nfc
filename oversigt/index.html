@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NFC demo 2 – oversigt</title>
-<!-- NFC demo 2 – oversigt (web), version 261126l. Kun visning + CSV-eksport af ordrer. -->
+<!-- NFC demo 2 – oversigt (web), version 261126m. Kun visning + CSV-eksport af ordrer. -->
 <style>
   :root {
     --bg: #f4f3ef; --kort: #fff; --tekst: #1f1d1a; --svag: #6b665d; --linje: #e2ded6;
@@ -67,7 +67,7 @@
   #log .info { color: #0645ad; } #log .ok { color: #08780a; } #log .fejl { color: #c00000; }
 
   /* detaljer */
-  #detaljer { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  #detaljer { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; padding: 20px; }
   #detaljer .kort { width: min(640px, 100%); max-height: 85vh; overflow: auto; padding: 18px 20px; }
   #detaljer h2 { margin: 0; color: #e65100; }
   #detaljer h3 { color: #0645ad; font-size: 14px; margin: 14px 0 4px; }
@@ -78,7 +78,7 @@
 </head>
 <body>
 <header>
-  <h1>NFC demo 2 – oversigt</h1><span class="ver">v261126l · kun visning</span>
+  <h1>NFC demo 2 – oversigt</h1><span class="ver">v261126m · kun visning</span>
   <span class="bruger" id="bruger"></span>
 </header>
 
@@ -172,7 +172,7 @@
   // ---- Indstillinger (kun publishable key – ALDRI secret key) ----
   const SUPABASE_URL = "https://yctucjpdhpxyhsdxrxow.supabase.co";
   const KEY = "sb_publishable_qTQTBe4enPihWMrL8PnaUA_ZtiRAyvM";
-  const VERSION = "261126l";
+  const VERSION = "261126m";
   const CHIP_SELECT = "uid,batch,status,produceret,rettet,detaljer,tandtyper(varenr,navn),registreringer(kunde_navn,maskine,garanti_slut)";
 
   const $ = (id) => document.getElementById(id);
