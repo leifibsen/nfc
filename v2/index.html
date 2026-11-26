@@ -1,58 +1,262 @@
 <!DOCTYPE html>
-<html>
+<html lang="nb">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
-  <base href="$FLUTTER_BASE_HREF">
-
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-
-  <!--
-    Uncomment the tag below to lay the app out underneath the parts of the
-    screen that the device obstructs, such as a display cutout, the rounded
-    corners of the screen, or a home indicator.
-
-    Without it, the browser keeps the app clear of them, and `SafeArea` and
-    `MediaQuery.paddingOf` report no padding. With it, the app covers the whole
-    screen, and it is up to the app to keep its own content out of the way,
-    which is what `SafeArea` is for.
-  -->
-  <!-- <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"> -->
-
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="NFC demo 2">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>NFC demo 2</title>
-  <link rel="manifest" href="manifest.json">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skuffetann – produkt-ID (demo 2)</title>
+<!-- NFC demo 2, version 261126h -->
+<style>
+  :root {
+    --bg: #f4f3ef; --kort: #ffffff; --tekst: #1f1d1a; --svag: #6b665d;
+    --aksent: #d9822b;
+    --ok: #1f7a3a; --ok-bg: #e3f3e7; --ukendt: #8a5a00; --ukendt-bg: #fff3d9;
+    --fejl: #b3261e; --fejl-bg: #fde7e5; --graa: #555; --graa-bg: #ecebe8; --linje: #e5e2dc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--tekst);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 17px; line-height: 1.45;
+  }
+  main { max-width: 520px; margin: 0 auto; padding: 20px 16px 40px; }
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  header svg { width: 34px; height: 34px; flex-shrink: 0; }
+  header h1 { font-size: 21px; margin: 0; }
+  header small { display: block; font-size: 13px; color: var(--svag); font-weight: normal; }
+  .kort {
+    background: var(--kort); border-radius: 16px; padding: 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 14px;
+  }
+  .kort h3 { margin: 0 0 10px; font-size: 18px; }
+  .status { border-radius: 16px; padding: 18px; margin-bottom: 14px; }
+  .status .ikon { font-size: 34px; line-height: 1; }
+  .status h2 { margin: 8px 0 4px; font-size: 22px; }
+  .status p { margin: 0; }
+  .ok { background: var(--ok-bg); color: var(--ok); }
+  .ukendt { background: var(--ukendt-bg); color: var(--ukendt); }
+  .fejl { background: var(--fejl-bg); color: var(--fejl); }
+  .graa { background: var(--graa-bg); color: var(--graa); }
+  .vent { background: var(--kort); color: var(--svag); }
+  #statusTekst { font-size: 15px; margin-bottom: 4px; }
+  #statusTekst:empty { display: none; }
+  .uid { font-family: ui-monospace, Consolas, monospace; font-size: 15px; word-break: break-all; opacity: .85; }
+  dl { margin: 0; }
+  .raekke { display: flex; gap: 12px; padding: 9px 0; border-top: 1px solid var(--linje); }
+  .raekke:first-child { border-top: 0; }
+  dt { width: 40%; color: var(--svag); flex-shrink: 0; }
+  dd { margin: 0; flex: 1; word-break: break-word; }
+  label { display: block; font-size: 15px; color: var(--svag); margin: 10px 0 4px; }
+  input {
+    width: 100%; font: inherit; padding: 11px 12px; border: 1px solid #cfcac1;
+    border-radius: 10px; background: #fff;
+  }
+  input:focus { outline: 2px solid var(--aksent); border-color: transparent; }
+  button {
+    width: 100%; margin-top: 16px; padding: 14px; font: inherit; font-weight: 600;
+    color: #fff; background: var(--aksent); border: 0; border-radius: 12px; cursor: pointer;
+  }
+  button:disabled { opacity: .6; cursor: default; }
+  .melding { margin-top: 10px; font-size: 15px; }
+  .melding.fejl { background: none; }
+  .note { font-size: 14px; color: var(--svag); padding: 4px 4px 0; }
+  .note b { color: var(--tekst); }
+  .skjult { display: none; }
+</style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+<main>
+  <header>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#d9822b" d="M4 3h16l-2 9-6 9-6-9L4 3zm3.2 2 1.4 6.3L12 16.4l3.4-5.1L16.8 5H7.2z"/></svg>
+    <h1>Skuffetann – produkt-ID<small>Demo 2</small></h1>
+  </header>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
-  <script src="flutter_bootstrap.js" async></script>
+  <section id="status" class="status vent">
+    <div class="ikon">⏳</div>
+    <h2>Slår opp tannen…</h2>
+    <p id="statusTekst"></p>
+    <p class="uid" id="statusUid"></p>
+  </section>
+
+  <section id="data" class="kort skjult">
+    <dl id="felter"></dl>
+  </section>
+
+  <section id="skjema" class="kort skjult">
+    <h3>Registrer garanti</h3>
+    <p style="margin:0;color:var(--svag);font-size:15px">
+      Registrer tannen på deg/firmaet ditt. Garantien gjelder 12 måneder fra i dag.
+    </p>
+    <form id="regForm" novalidate>
+      <label for="navn">Navn / firma *</label>
+      <input id="navn" maxlength="100" autocomplete="organization" required>
+      <label for="epost">E-post</label>
+      <input id="epost" type="email" maxlength="200" autocomplete="email">
+      <label for="maskin">Maskin (f.eks. modell eller nr.)</label>
+      <input id="maskin" maxlength="100">
+      <button id="regKnapp" type="submit">Registrer</button>
+      <p id="regMelding" class="melding"></p>
+    </form>
+  </section>
+
+  <p class="note">
+    <b>Demo:</b> Tannens ID står i URL-en og kan i prinsippet kopieres.
+    Ekte kopibeskyttelse krever en chip som NTAG 424 DNA, som lager en ny kryptert kode ved hver skanning.
+  </p>
+</main>
+
+<script>
+  // ---- Innstillinger (kun publishable key – ALDRI secret key) ----
+  const SUPABASE_URL = "https://yctucjpdhpxyhsdxrxow.supabase.co";
+  const PUBLISHABLE_KEY = "sb_publishable_qTQTBe4enPihWMrL8PnaUA_ZtiRAyvM";
+
+  const $ = (id) => document.getElementById(id);
+  const chipId = new URLSearchParams(location.search).get("id");
+
+  async function rpc(navn, body) {
+    const svar = await fetch(SUPABASE_URL + "/rest/v1/rpc/" + navn, {
+      method: "POST",
+      headers: { "apikey": PUBLISHABLE_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const d = await svar.json();
+    if (!svar.ok) throw new Error(d.message || ("HTTP " + svar.status));
+    return d;
+  }
+
+  function visStatus(klasse, ikon, titel, tekst, uid) {
+    const s = $("status");
+    s.className = "status " + klasse;
+    s.querySelector(".ikon").textContent = ikon;
+    s.querySelector("h2").textContent = titel;
+    $("statusTekst").textContent = tekst || "";
+    $("statusUid").textContent = uid || "";
+  }
+
+  // Kort browsertekst til loggen, fx "Chrome · Android"
+  function kortBrowser() {
+    const u = navigator.userAgent;
+    const b = /Edg\//.test(u) ? "Edge" : /OPR\//.test(u) ? "Opera" : /SamsungBrowser/.test(u) ? "Samsung Internet"
+            : /Firefox\//.test(u) ? "Firefox" : /Chrome\//.test(u) ? "Chrome" : /Safari\//.test(u) ? "Safari" : "Browser";
+    const o = /Android/.test(u) ? "Android" : /iPhone|iPad/.test(u) ? "iOS" : /Windows/.test(u) ? "Windows"
+            : /Mac OS/.test(u) ? "macOS" : /Linux/.test(u) ? "Linux" : "";
+    return "Web: " + b + (o ? " · " + o : "");
+  }
+
+  function dato(v) {
+    if (!v) return "–";
+    const d = new Date(v);
+    if (isNaN(d)) return v;
+    return d.toLocaleDateString("nb-NO", { day: "numeric", month: "long", year: "numeric" });
+  }
+
+  function visFelter(par) {
+    const dl = $("felter");
+    dl.replaceChildren();
+    for (const [navn, vaerdi] of par) {
+      const r = document.createElement("div");
+      r.className = "raekke";
+      const dt = document.createElement("dt");
+      dt.textContent = navn;
+      const dd = document.createElement("dd");
+      dd.textContent = vaerdi;
+      r.append(dt, dd);
+      dl.append(r);
+    }
+    $("data").classList.remove("skjult");
+  }
+
+  async function slaaOpp() {
+    if (!chipId) {
+      visStatus("fejl", "⚠️", "Mangler tann-ID", "URL-en mangler ?id=…");
+      return;
+    }
+    $("statusUid").textContent = chipId;
+    try {
+      const d = await rpc("tand_opslag", { p_id: chipId, p_browser: kortBrowser() });
+      if (d.fejl) { visStatus("fejl", "⚠️", d.fejl, "", chipId); return; }
+
+      if (!d.fundet) {
+        visStatus("fejl", "⛔", "Ukjent tann", "Ikke registrert hos produsent – mulig kopi.", d.uid);
+        $("data").classList.add("skjult");
+        $("skjema").classList.add("skjult");
+        return;
+      }
+
+      const tann = [d.varenr, d.tandtype].filter(Boolean).join(" ") || "–";
+      const felter = [
+        ["Tanntype", tann],
+        ["Produsert", dato(d.produceret)],
+        ["Batch", d.batch || "–"],
+      ];
+
+      if (d.status === "udskiftet" || d.status === "kasseret") {
+        visStatus("graa", "⚠️",
+          d.status === "udskiftet" ? "Tannen er meldt utskiftet" : "Tannen er kassert",
+          "Denne tannen skal ikke være i bruk. Kontakt forhandler hvis den sitter på en maskin.", d.uid);
+      } else if (d.registreret) {
+        visStatus("ok", "✅", "Ekte tann – garanti registrert",
+          (d.garanti_aktiv ? "Garanti aktiv til " : "Garanti utløpt ") + dato(d.garanti_slut) + ".", d.uid);
+      } else {
+        visStatus("ok", "✅", "Ekte tann – ikke registrert ennå",
+          "Produsert og kontrollert hos produsent. Registrer garantien nedenfor.", d.uid);
+      }
+
+      if (d.registreret) {
+        felter.push(
+          ["Garanti", (d.status === "udskiftet" || d.status === "kasseret")
+                        ? "Avsluttet – tannen er " + (d.status === "udskiftet" ? "utskiftet" : "kassert")
+                        : d.garanti_aktiv ? "Aktiv til " + dato(d.garanti_slut) : "Utløpt " + dato(d.garanti_slut)],
+          ["Registrert av kunde", dato(d.garanti_start) + (d.kunde ? " (" + d.kunde + ")" : "")],
+          ["Maskin", d.maskine || "–"],
+        );
+        $("skjema").classList.add("skjult");
+      } else if (d.status === "produceret") {
+        felter.push(["Garanti", "Ikke registrert ennå"]);
+        $("skjema").classList.remove("skjult");
+      }
+      felter.push(["Skannet på web", d.web_scanninger + " gang(er)"]);
+      visFelter(felter);
+    } catch (e) {
+      visStatus("fejl", "⚠️", "Oppslaget feilet", String(e.message || e), chipId);
+    }
+  }
+
+  $("regForm").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const navn = $("navn").value.trim();
+    const melding = $("regMelding");
+    melding.className = "melding";
+    if (!navn) {
+      melding.className = "melding fejl";
+      melding.textContent = "Skriv inn navn eller firma.";
+      $("navn").focus();
+      return;
+    }
+    $("regKnapp").disabled = true;
+    melding.textContent = "Registrerer…";
+    try {
+      const d = await rpc("tand_registrer", {
+        p_id: chipId, p_navn: navn,
+        p_email: $("epost").value.trim() || null,
+        p_maskine: $("maskin").value.trim() || null,
+      });
+      if (!d.ok) {
+        melding.className = "melding fejl";
+        melding.textContent = d.fejl || "Registreringen feilet.";
+        $("regKnapp").disabled = false;
+        return;
+      }
+      melding.textContent = "";
+      await slaaOpp();
+      visStatus("ok", "🎉", "Garanti registrert", "Gyldig til " + dato(d.garanti_slut) + ". Takk!", d.uid);
+    } catch (e) {
+      melding.className = "melding fejl";
+      melding.textContent = "Feil: " + (e.message || e);
+      $("regKnapp").disabled = false;
+    }
+  });
+
+  slaaOpp();
+</script>
 </body>
 </html>
