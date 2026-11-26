@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NFC demo 3 – oversigt</title>
+<!-- NFC demo 3 – oversigt (web), version 261126s. ERP-import/eksport, ordrer, afsendelse, følgeseddel. -->
+<style>
+  :root { --bg:#f4f3ef; --kort:#fff; --tekst:#1f1d1a; --svag:#6b665d; --linje:#e2ded6; --aksent:#d9822b; --aksent-mork:#8a5216;
+          --bla:#1565c0; --gron:#2e7d32; --graa:#757575; --rod:#c62828; --lilla:#6a1b9a; --tyrkis:#00838f; --gul:#fff3c4; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--tekst); font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  header { background:#2b2722; color:#fff; padding:10px 18px; display:flex; align-items:center; gap:14px; }
+  header h1 { font-size:18px; margin:0; font-weight:600; }
+  header .ver { color:#cfc8bd; font-size:12px; }
+  header .bruger { margin-left:auto; font-size:13px; color:#cfc8bd; }
+  main { padding:14px 18px 18px; max-width:1500px; margin:0 auto; }
+  .kort { background:var(--kort); border:1px solid var(--linje); border-radius:10px; }
+  button, select, input { font:inherit; }
+  button { padding:6px 14px; border:1px solid #c9c3b8; background:#fff; border-radius:6px; cursor:pointer; }
+  button:hover:not(:disabled) { background:#f7f3ec; }
+  button:disabled { opacity:.5; cursor:default; }
+  button.primaer { background:var(--aksent); border-color:var(--aksent); color:#fff; font-weight:600; }
+  input[type=text], input[type=email], input[type=password] { padding:8px 10px; border:1px solid #c9c3b8; border-radius:6px; width:100%; }
+  .skjult { display:none !important; }
+  #login { max-width:380px; margin:60px auto; padding:24px; }
+  #login h2 { margin:0 0 14px; font-size:20px; }
+  #login label { display:block; color:var(--svag); margin:10px 0 4px; }
+  #login button { width:100%; margin-top:18px; padding:10px; }
+  #loginFejl { color:var(--rod); margin-top:10px; min-height:1em; }
+  .linje { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+  #overblik { font-size:15px; font-weight:700; }
+  .hojre { margin-left:auto; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .faner { display:flex; gap:2px; flex-wrap:wrap; }
+  .faner button { border-radius:8px 8px 0 0; border-bottom:none; background:#ebe7e0; }
+  .faner button.aktiv { background:#fff; font-weight:600; }
+  .fane { border-top-left-radius:0; overflow:hidden; }
+  .vaerktoj { padding:8px 12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; border-bottom:1px solid var(--linje); }
+  .vaerktoj .info { color:var(--svag); }
+  .tabelboks { max-height:48vh; overflow:auto; }
+  .tabelboks.lav { max-height:28vh; }
+  table { border-collapse:collapse; width:100%; }
+  th, td { padding:5px 10px; text-align:left; border-bottom:1px solid #eeebe5; white-space:nowrap; }
+  th { position:sticky; top:0; background:#f0ede7; font-weight:600; z-index:1; }
+  td.tal { text-align:right; font-variant-numeric:tabular-nums; }
+  tbody tr:hover { background:#faf7f1; }
+  tr.valgt td { background:#fdecd6 !important; }
+  .mono { font-family:ui-monospace,Consolas,monospace; }
+  .s-produceret { color:var(--bla); } .s-paa_lager { color:var(--tyrkis); } .s-plukket { color:var(--lilla); }
+  .s-sendt, .s-leveret { color:#8a5216; } .s-registreret { color:var(--gron); } .s-udskiftet { color:var(--graa); } .s-kasseret { color:var(--rod); }
+  .s-aaben { color:var(--bla); } .s-faerdig { color:var(--gron); } .s-annulleret { color:var(--graa); }
+  tr.ny-h td { background:var(--gul); }
+  .underhoved { padding:8px 12px; font-weight:600; color:var(--aksent-mork); border-top:1px solid var(--linje); background:#fbfaf7; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .tom { padding:14px; color:var(--svag); }
+  #log { margin-top:12px; padding:8px 12px; font:12px/1.5 ui-monospace,Consolas,monospace; max-height:120px; overflow:auto; }
+  #log .info { color:#0645ad; } #log .ok { color:#08780a; } #log .fejl { color:#c00000; }
+  .modal { position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center; padding:20px; }
+  .modal .kort { width:min(680px,100%); max-height:86vh; overflow:auto; padding:18px 20px; }
+  .modal h2 { margin:0 0 8px; }
+  .modal h3 { color:#0645ad; font-size:14px; margin:14px 0 4px; }
+  .modal dl { display:grid; grid-template-columns:170px 1fr; gap:2px 10px; margin:0; }
+  .modal dt { color:var(--svag); } .modal dd { margin:0; font-family:ui-monospace,Consolas,monospace; word-break:break-all; }
+  .knapper { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
+  .tal-stor { display:flex; gap:22px; margin:8px 0 12px; }
+  .tal-stor div { text-align:center; } .tal-stor b { display:block; font-size:24px; }
+  .fejlliste { color:var(--rod); font-size:13px; max-height:200px; overflow:auto; }
+  .hjaelp { color:var(--svag); font-size:12.5px; }
+  code { background:#f0ede7; padding:1px 5px; border-radius:4px; font-size:12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>NFC demo 3 – oversigt</h1><span class="ver">v261126s · ordreflyt med ERP</span>
+  <span class="bruger" id="bruger"></span>
+</header>
+
+<main>
+  <section id="login" class="kort">
+    <h2>Log ind</h2>
+    <form id="loginForm">
+      <label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required>
+      <label for="kode">Adgangskode</label><input id="kode" type="password" autocomplete="current-password" required>
+      <button class="primaer" type="submit">Log ind</button>
+      <div id="loginFejl"></div>
+    </form>
+  </section>
+
+  <section id="app" class="skjult">
+    <div class="linje">
+      <span id="overblik">–</span>
+      <div class="hojre">
+        <label><input type="checkbox" id="auto" checked> Auto-opdater hvert 10. sek.</label>
+        <button id="opdater">Opdater</button><button id="logud">Log ud</button>
+      </div>
+    </div>
+
+    <div class="faner" id="faner">
+      <button data-fane="enheder" class="aktiv">Enheder</button>
+      <button data-fane="produkter">Produkter</button>
+      <button data-fane="prod">Produktionsordrer</button>
+      <button data-fane="kunde">Kundeordrer</button>
+      <button data-fane="fors">Forsendelser</button>
+      <button data-fane="haend">Hændelser</button>
+      <button data-fane="importlog">Importlog</button>
+    </div>
+
+    <!-- Enheder -->
+    <div class="kort fane" id="fane-enheder">
+      <div class="vaerktoj">
+        <label>Status: <select id="filter">
+          <option>alle</option><option value="produceret">produceret</option><option value="paa_lager">på lager</option>
+          <option value="plukket">plukket</option><option value="sendt">sendt</option><option value="registreret">registreret</option>
+          <option value="udskiftet">udskiftet</option><option value="kasseret">kasseret</option></select></label>
+        <span class="info">Klik: hændelser · dobbeltklik: chip-detaljer</span>
+      </div>
+      <div class="tabelboks"><table><thead><tr><th>enheds-ID</th><th>produkt</th><th>kategori</th><th>batch</th><th>status</th>
+        <th>prod.ordre</th><th>kundeordre</th><th>kunde</th><th>garanti til</th><th>produceret</th><th>rettet</th></tr></thead>
+        <tbody id="tbEnheder"></tbody></table></div>
+      <div class="underhoved" id="enhHTitel">Hændelser for valgt enhed</div>
+      <div class="tabelboks lav"><table><thead><tr><th>tid</th><th>type</th><th>kilde</th><th>tekst</th></tr></thead><tbody id="tbEnhH"></tbody></table></div>
+    </div>
+
+    <!-- Produkter -->
+    <div class="kort fane skjult" id="fane-produkter">
+      <div class="vaerktoj">
+        <button class="primaer" data-import="produkter">Importér produkter (CSV) …</button>
+        <span class="hjaelp">Kolonner: <code>Varenr;Navn;Kategori;Pris;Aktiv</code> – kendt varenr opdateres, Aktiv=0 deaktiverer.</span>
+      </div>
+      <div class="tabelboks" style="max-height:70vh"><table><thead><tr><th>varenr</th><th>navn</th><th>kategori</th><th>pris</th><th>aktiv</th>
+        <th>enheder</th><th>på lager</th><th>opdateret</th></tr></thead><tbody id="tbProd"></tbody></table></div>
+    </div>
+
+    <!-- Produktionsordrer -->
+    <div class="kort fane skjult" id="fane-prod">
+      <div class="vaerktoj">
+        <button class="primaer" data-import="prodordrer">Importér produktionsordrer (CSV) …</button>
+        <button id="eksFaerdig">Eksportér færdigmelding (CSV) …</button>
+        <span class="hjaelp">Kolonner: <code>Ordrenr;Varenr;Antal;Batch;Leveringsdato</code></span>
+      </div>
+      <div class="tabelboks" style="max-height:70vh"><table><thead><tr><th>ordrenr</th><th>varenr</th><th>produkt</th><th>produceret</th><th>antal</th>
+        <th>batch</th><th>levering</th><th>status</th><th>færdig</th><th>eksporteret</th></tr></thead><tbody id="tbPO"></tbody></table></div>
+    </div>
+
+    <!-- Kundeordrer -->
+    <div class="kort fane skjult" id="fane-kunde">
+      <div class="vaerktoj">
+        <button class="primaer" data-import="kundeordrer">Importér kundeordrer (CSV) …</button>
+        <span class="hjaelp">Kolonner: <code>Ordrenr;Kundenr;Kundenavn;Varenr;Antal;Leveringsdato</code> – én linje pr. ordrelinje</span>
+      </div>
+      <div class="tabelboks"><table><thead><tr><th>ordrenr</th><th>kundenr</th><th>kunde</th><th>levering</th><th>status</th><th>plukket</th><th>linjer</th></tr></thead>
+        <tbody id="tbKO"></tbody></table></div>
+      <div class="underhoved"><span id="koTitel">Vælg en kundeordre</span>
+        <span style="margin-left:auto"></span>
+        <button id="koFolge" disabled>Følgeseddel …</button>
+        <button id="koSend" class="primaer" disabled>Afsend …</button></div>
+      <div class="tabelboks lav"><table><thead><tr><th>varenr</th><th>produkt</th><th>bestilt</th><th>plukket</th><th>enheds-ID'er</th></tr></thead>
+        <tbody id="tbKOL"></tbody></table></div>
+    </div>
+
+    <!-- Forsendelser -->
+    <div class="kort fane skjult" id="fane-fors">
+      <div class="vaerktoj">
+        <button id="eksFors">Eksportér forsendelser (CSV) …</button>
+        <button id="eksFakt" class="primaer">Eksportér fakturagrundlag (CSV) …</button>
+        <label><input type="checkbox" id="kunNye" checked> kun ikke-eksporterede</label>
+      </div>
+      <div class="tabelboks" style="max-height:70vh"><table><thead><tr><th>nr</th><th>kundeordre</th><th>kunde</th><th>sendt</th><th>fragtnr</th>
+        <th>enheder</th><th>beløb</th><th>eksporteret</th><th></th></tr></thead><tbody id="tbFS"></tbody></table></div>
+    </div>
+
+    <div class="kort fane skjult" id="fane-haend">
+      <div class="tabelboks" style="max-height:72vh"><table><thead><tr><th>tid</th><th>enhed</th><th>type</th><th>kilde</th><th>tekst</th></tr></thead>
+        <tbody id="tbH"></tbody></table></div>
+    </div>
+
+    <div class="kort fane skjult" id="fane-importlog">
+      <div class="tabelboks" style="max-height:72vh"><table><thead><tr><th>tid</th><th>filtype</th><th>fil</th><th>nye</th><th>opdateret</th><th>sprunget / uændret</th><th>fejl</th></tr></thead>
+        <tbody id="tbIL"></tbody></table></div>
+    </div>
+
+    <div id="log" class="kort"></div>
+  </section>
+</main>
+
+<input type="file" id="fil" accept=".csv,text/csv,.txt" class="skjult">
+
+<!-- Importrapport -->
+<div id="mImport" class="modal skjult"><div class="kort">
+  <h2 id="iTitel">Import</h2>
+  <div id="iFil" class="hjaelp"></div>
+  <div class="tal-stor" id="iTal"></div>
+  <div id="iFejl" class="fejlliste"></div>
+  <p class="hjaelp" id="iNote">Prøvekørsel – intet er gemt endnu.</p>
+  <div class="knapper"><button id="iAnnuller">Annuller</button><button id="iGem" class="primaer">Godkend og gem</button></div>
+</div></div>
+
+<!-- Chip-detaljer -->
+<div id="mDet" class="modal skjult"><div class="kort">
+  <h2 id="dType" style="color:#e65100"></h2>
+  <div class="mono" id="dUid" style="font-weight:700;font-size:16px"></div>
+  <div id="dTid" class="hjaelp"></div>
+  <div id="dSek"></div>
+  <div class="knapper"><button id="dLuk" class="primaer">Luk</button></div>
+</div></div>
+
+<script>
+  const SUPABASE_URL = "https://yctucjpdhpxyhsdxrxow.supabase.co";
+  const KEY = "sb_publishable_qTQTBe4enPihWMrL8PnaUA_ZtiRAyvM";   // kun publishable key
+  const VERSION = "261126s";
+  const KUNDESIDE = "https://leifibsen.github.io/nfc/v3/";
+  const $ = (id) => document.getElementById(id);
+  const STATUS_TEKST = { produceret:"produceret", paa_lager:"på lager", plukket:"plukket", sendt:"sendt", leveret:"leveret",
+    registreret:"registreret", udskiftet:"udskiftet", kasseret:"kasseret", aaben:"åben", faerdig:"færdig", annulleret:"annulleret" };
+
+  let session = null, data = { enh:[], prod:[], po:[], ko:[], fs:[], h:[], il:[] };
+  let valgtUid = null, valgtKO = null, sidsteH = null, autoTimer = null, henter = false;
+
+  // ---------- hjælpere ----------
+  function log(t, k) { const d = new Date(), to = (n) => String(n).padStart(2,"0"); const l = document.createElement("div");
+    if (k) l.className = k; l.textContent = `${to(d.getHours())}:${to(d.getMinutes())}:${to(d.getSeconds())}  ${t}`; $("log").append(l); $("log").scrollTop = 1e9; }
+  function tid(v) { if (!v) return ""; const d = new Date(v); if (isNaN(d)) return String(v); const to = (n) => String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${to(d.getMonth()+1)}-${to(d.getDate())} ${to(d.getHours())}:${to(d.getMinutes())}`; }
+  function celle(tr, t, k) { const td = document.createElement("td"); td.textContent = t == null ? "" : String(t); if (k) td.className = k; tr.append(td); return td; }
+  function tom(tb, n, t) { const tr = document.createElement("tr"), td = document.createElement("td"); td.colSpan = n; td.className = "tom"; td.textContent = t; tr.append(td); tb.append(tr); }
+  const en = (x) => Array.isArray(x) ? (x[0] || null) : (x || null);
+  const kr = (v) => v == null ? "" : Number(v).toLocaleString("da-DK", { minimumFractionDigits:2, maximumFractionDigits:2 });
+  const komma = (v) => v == null ? "" : Number(v).toFixed(2).replace(".", ",");
+  const st = (s) => STATUS_TEKST[s] || s;
+  function gemSession(s) { session = s; try { s ? sessionStorage.setItem("nfc_ov3", JSON.stringify(s)) : sessionStorage.removeItem("nfc_ov3"); } catch (_) {} }
+
+  // ---------- Supabase ----------
+  async function auth(type, body) {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=${type}`, { method:"POST", headers:{ apikey:KEY, "Content-Type":"application/json" }, body:JSON.stringify(body) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error_description || d.msg || d.message || "HTTP " + r.status);
+    return { access_token:d.access_token, refresh_token:d.refresh_token, udloeber:Date.now() + (d.expires_in || 3600)*1000, email:d.user && d.user.email };
+  }
+  async function sikrToken() {
+    if (session && Date.now() > session.udloeber - 60000) { const ny = await auth("refresh_token", { refresh_token:session.refresh_token }); ny.email = ny.email || session.email; gemSession(ny); }
+  }
+  async function rest(metode, sti, body, ekstra) {
+    await sikrToken();
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${sti}`, { method:metode,
+      headers:Object.assign({ apikey:KEY, Authorization:"Bearer " + session.access_token, "Content-Type":"application/json" }, ekstra || {}),
+      body: body === undefined ? undefined : JSON.stringify(body) });
+    const tekst = await r.text(); const d = tekst ? JSON.parse(tekst) : null;
+    if (r.status === 401) throw new Error("Login er udløbet – log ind igen");
+    if (!r.ok) throw new Error((d && (d.message || d.hint)) || "HTTP " + r.status);
+    return d;
+  }
+  const hent = (tabel, q) => rest("GET", `${tabel}?${new URLSearchParams(q)}`);
+  const rpc = (navn, args) => rest("POST", `rpc/${navn}`, args);
+
+  // ---------- login ----------
+  $("loginForm").addEventListener("submit", async (e) => { e.preventDefault(); $("loginFejl").textContent = "";
+    try { gemSession(await auth("password", { email:$("email").value.trim(), password:$("kode").value })); $("kode").value = ""; visApp(); }
+    catch (x) { $("loginFejl").textContent = "Login fejlede: " + x.message; } });
+  $("logud").addEventListener("click", () => { stopAuto(); gemSession(null); $("app").classList.add("skjult"); $("login").classList.remove("skjult"); $("bruger").textContent = ""; });
+  function visApp() { $("login").classList.add("skjult"); $("app").classList.remove("skjult"); $("bruger").textContent = "Logget ind: " + (session.email || "");
+    $("log").replaceChildren(); log(`NFC demo 3 – oversigt (web) version ${VERSION}`, "info"); log("Logget ind som " + (session.email || ""), "ok"); hentAlt(false); }
+
+  // ---------- hent ----------
+  async function hentAlt(auto) {
+    if (henter || !session) return; henter = true;
+    try {
+      const [enh, prod, po, ko, fs, h, il] = await Promise.all([
+        hent("d3_enheder", { select:"uid,status,batch,produceret,rettet,detaljer,produkt_id,prodordre_id,kundeordre_id,forsendelse_id,d3_produkter(varenr,navn,kategori),d3_registreringer(kunde_navn,garanti_slut)", order:"produceret.desc" }),
+        hent("d3_produkter", { select:"*", order:"varenr" }),
+        hent("d3_prodordrer", { select:"*,d3_produkter(varenr,navn)", order:"id.desc" }),
+        hent("d3_kundeordrer", { select:"*,d3_ordrelinjer(antal,produkt_id,d3_produkter(varenr,navn,pris))", order:"id.desc" }),
+        hent("d3_forsendelser", { select:"*,d3_kundeordrer(ordrenr,kundenr,kundenavn)", order:"id.desc" }),
+        hent("d3_haendelser", { select:"*", order:"tid.desc", limit:"300" }),
+        hent("d3_importlog", { select:"*", order:"id.desc", limit:"100" }),
+      ]);
+      const nye = new Set(); if (sidsteH !== null) h.forEach((x) => { if (x.id > sidsteH) nye.add(x.id); });
+      sidsteH = h.length ? Math.max(...h.map((x) => x.id)) : (sidsteH ?? 0);
+      data = { enh, prod, po, ko, fs, h, il };
+      visEnheder(); visProdukter(); visPO(); visKO(); visKOdetalje(); visFS(); visH(nye); visIL(); visOverblik();
+      if (nye.size) log(`${nye.size} ny(e) hændelse(r)`, "info");
+      if (!auto) log(`Hentet ${enh.length} enheder, ${prod.length} produkter, ${po.length} produktionsordrer, ${ko.length} kundeordrer, ${fs.length} forsendelser`, "ok");
+      if (valgtUid) await visEnhH(valgtUid, true);
+    } catch (e) { log("Hent: " + e.message, "fejl"); if (/udløbet/.test(e.message)) $("logud").click(); }
+    finally { henter = false; planlaegAuto(); }
+  }
+
+  function visOverblik() {
+    const n = {}; data.enh.forEach((e) => n[e.status] = (n[e.status] || 0) + 1);
+    const aabnePO = data.po.filter((o) => o.status === "aaben").length, aabneKO = data.ko.filter((o) => o.status !== "sendt" && o.status !== "annulleret").length;
+    $("overblik").textContent = `Enheder: ${data.enh.length}  ·  produceret ${n.produceret||0}  ·  på lager ${n.paa_lager||0}  ·  plukket ${n.plukket||0}  ·  sendt ${n.sendt||0}  ·  registreret ${n.registreret||0}  ·  udskiftet ${n.udskiftet||0}   |   åbne prod.ordrer ${aabnePO}  ·  åbne kundeordrer ${aabneKO}`;
+  }
+  const poNr = (id) => (data.po.find((o) => o.id === id) || {}).ordrenr || "";
+  const koObj = (id) => data.ko.find((o) => o.id === id) || null;
+
+  function visEnheder() {
+    const tb = $("tbEnheder"), f = $("filter").value; tb.replaceChildren();
+    const liste = data.enh.filter((e) => f === "alle" || e.status === f);
+    if (!liste.length) { tom(tb, 11, "Ingen enheder"); return; }
+    for (const e of liste) {
+      const tr = document.createElement("tr"), p = e.d3_produkter || {}, r = en(e.d3_registreringer) || {}, ko = koObj(e.kundeordre_id);
+      tr.className = "s-" + e.status + (e.uid === valgtUid ? " valgt" : "");
+      celle(tr, e.uid, "mono"); celle(tr, `${p.varenr || ""} ${p.navn || ""}`.trim()); celle(tr, p.kategori || ""); celle(tr, e.batch || "");
+      celle(tr, st(e.status)); celle(tr, poNr(e.prodordre_id)); celle(tr, ko ? ko.ordrenr : ""); celle(tr, r.kunde_navn || (ko && ko.kundenavn) || "");
+      celle(tr, ["udskiftet","kasseret"].includes(e.status) && r.garanti_slut ? "afsluttet" : (r.garanti_slut || ""));
+      celle(tr, tid(e.produceret)); celle(tr, tid(e.rettet));
+      tr.addEventListener("click", () => { valgtUid = e.uid; document.querySelectorAll("#tbEnheder tr").forEach((x) => x.classList.toggle("valgt", x === tr)); visEnhH(e.uid, false); });
+      tr.addEventListener("dblclick", () => visDetaljer(e));
+      tb.append(tr);
+    }
+  }
+  async function visEnhH(uid, stille) {
+    try {
+      const rows = await hent("d3_haendelser", { select:"*", uid:"eq." + uid, order:"tid.desc" });
+      $("enhHTitel").textContent = `Hændelser for ${uid} (${rows.length})`;
+      const tb = $("tbEnhH"); tb.replaceChildren(); if (!rows.length) tom(tb, 4, "Ingen hændelser");
+      for (const h of rows) { const tr = document.createElement("tr"); celle(tr, tid(h.tid)); celle(tr, h.type); celle(tr, h.kilde); celle(tr, h.tekst || ""); tb.append(tr); }
+      if (!stille) log(`Enhed ${uid}: ${rows.length} hændelse(r)`, "info");
+    } catch (e) { log("Hændelser: " + e.message, "fejl"); }
+  }
+
+  function visProdukter() {
+    const tb = $("tbProd"); tb.replaceChildren(); if (!data.prod.length) { tom(tb, 8, "Ingen produkter – importér en CSV fra ERP"); return; }
+    for (const p of data.prod) {
+      const tr = document.createElement("tr"), enh = data.enh.filter((e) => e.produkt_id === p.id);
+      if (!p.aktiv) tr.className = "s-annulleret";
+      celle(tr, p.varenr); celle(tr, p.navn); celle(tr, p.kategori || ""); celle(tr, kr(p.pris), "tal"); celle(tr, p.aktiv ? "ja" : "nej");
+      celle(tr, enh.length, "tal"); celle(tr, enh.filter((e) => e.status === "paa_lager" || e.status === "produceret").length, "tal"); celle(tr, tid(p.opdateret || p.oprettet));
+      tb.append(tr);
+    }
+  }
+
+  function visPO() {
+    const tb = $("tbPO"); tb.replaceChildren(); if (!data.po.length) { tom(tb, 10, "Ingen produktionsordrer – importér en CSV fra ERP"); return; }
+    for (const o of data.po) {
+      const tr = document.createElement("tr"), p = o.d3_produkter || {}, prod = data.enh.filter((e) => e.prodordre_id === o.id).length;
+      tr.className = "s-" + o.status;
+      celle(tr, o.ordrenr); celle(tr, p.varenr || ""); celle(tr, p.navn || ""); celle(tr, prod, "tal"); celle(tr, o.antal, "tal"); celle(tr, o.batch || "");
+      celle(tr, o.leveringsdato || ""); celle(tr, st(o.status)); celle(tr, tid(o.faerdig)); celle(tr, tid(o.eksporteret));
+      tb.append(tr);
+    }
+  }
+
+  function koLinjer(o) {
+    return (o.d3_ordrelinjer || []).map((l) => {
+      const enh = data.enh.filter((e) => e.kundeordre_id === o.id && e.produkt_id === l.produkt_id);
+      return { p:l.d3_produkter || {}, antal:l.antal, enh };
+    });
+  }
+  function visKO() {
+    const tb = $("tbKO"); tb.replaceChildren(); if (!data.ko.length) { tom(tb, 7, "Ingen kundeordrer – importér en CSV fra ERP"); return; }
+    for (const o of data.ko) {
+      const tr = document.createElement("tr"), li = koLinjer(o);
+      const best = li.reduce((s, l) => s + l.antal, 0), pluk = li.reduce((s, l) => s + l.enh.length, 0);
+      tr.className = "s-" + (o.status === "aaben" ? "aaben" : o.status) + (o.id === valgtKO ? " valgt" : "");
+      celle(tr, o.ordrenr); celle(tr, o.kundenr || ""); celle(tr, o.kundenavn || ""); celle(tr, o.leveringsdato || ""); celle(tr, st(o.status));
+      celle(tr, `${pluk} / ${best}`, "tal"); celle(tr, li.map((l) => `${l.p.varenr} ×${l.antal}`).join(", "));
+      tr.addEventListener("click", () => { valgtKO = o.id; document.querySelectorAll("#tbKO tr").forEach((x) => x.classList.toggle("valgt", x === tr)); visKOdetalje(); });
+      tb.append(tr);
+    }
+  }
+  function visKOdetalje() {
+    const o = koObj(valgtKO), tb = $("tbKOL"); tb.replaceChildren();
+    if (!o) { $("koTitel").textContent = "Vælg en kundeordre"; $("koSend").disabled = $("koFolge").disabled = true; return; }
+    $("koTitel").textContent = `Kundeordre ${o.ordrenr} – ${o.kundenavn || ""} – ${st(o.status)}`;
+    $("koSend").disabled = o.status !== "plukket"; $("koFolge").disabled = !["plukket","sendt"].includes(o.status);
+    for (const l of koLinjer(o)) {
+      const tr = document.createElement("tr");
+      celle(tr, l.p.varenr); celle(tr, l.p.navn); celle(tr, l.antal, "tal"); celle(tr, l.enh.length, "tal"); celle(tr, l.enh.map((e) => e.uid).join("  "), "mono");
+      tb.append(tr);
+    }
+  }
+
+  function fsLinjer(f) {
+    const enh = data.enh.filter((e) => e.forsendelse_id === f.id), ko = koObj(f.kundeordre_id), pr = {};
+    for (const e of enh) { const p = data.prod.find((x) => x.id === e.produkt_id) || {}; const k = p.varenr || "?";
+      (pr[k] = pr[k] || { p, uids:[] }).uids.push(e.uid); }
+    return { enh, ko, linjer:Object.values(pr) };
+  }
+  function visFS() {
+    const tb = $("tbFS"); tb.replaceChildren(); if (!data.fs.length) { tom(tb, 9, "Ingen forsendelser endnu"); return; }
+    for (const f of data.fs) {
+      const tr = document.createElement("tr"), k = f.d3_kundeordrer || {}, { enh, linjer } = fsLinjer(f);
+      const beloeb = linjer.reduce((s, l) => s + (Number(l.p.pris) || 0) * l.uids.length, 0);
+      celle(tr, f.id, "tal"); celle(tr, k.ordrenr || ""); celle(tr, k.kundenavn || ""); celle(tr, tid(f.sendt)); celle(tr, f.fragtnr || "");
+      celle(tr, enh.length, "tal"); celle(tr, kr(beloeb), "tal"); celle(tr, tid(f.eksporteret));
+      const td = document.createElement("td"); const b = document.createElement("button"); b.textContent = "Følgeseddel"; b.onclick = () => foelgeseddel(f.kundeordre_id); td.append(b); tr.append(td);
+      tb.append(tr);
+    }
+  }
+  function visH(nye) {
+    const tb = $("tbH"); tb.replaceChildren(); if (!data.h.length) { tom(tb, 5, "Ingen hændelser"); return; }
+    for (const h of data.h) { const tr = document.createElement("tr"); if (nye.has(h.id)) tr.className = "ny-h";
+      celle(tr, tid(h.tid)); celle(tr, h.uid || "", "mono"); celle(tr, h.type); celle(tr, h.kilde); celle(tr, h.tekst || ""); tb.append(tr); }
+  }
+  function visIL() {
+    const tb = $("tbIL"); tb.replaceChildren(); if (!data.il.length) { tom(tb, 7, "Ingen importer endnu"); return; }
+    for (const i of data.il) { const tr = document.createElement("tr");
+      celle(tr, tid(i.tid)); celle(tr, i.filtype); celle(tr, i.filnavn || ""); celle(tr, i.nye, "tal"); celle(tr, i.opdateret, "tal"); celle(tr, i.sprunget, "tal"); celle(tr, i.fejl, "tal"); tb.append(tr); }
+  }
+
+  // ---------- CSV ----------
+  function parseCsv(tekst) {
+    tekst = tekst.replace(/^﻿/, "");
+    const foerste = tekst.split(/\r?\n/)[0] || "";
+    const sep = (foerste.match(/;/g) || []).length >= (foerste.match(/,/g) || []).length ? ";" : ",";
+    const rader = []; let rad = [], felt = "", i = 0, iCit = false;
+    while (i < tekst.length) {
+      const c = tekst[i];
+      if (iCit) { if (c === '"') { if (tekst[i+1] === '"') { felt += '"'; i++; } else iCit = false; } else felt += c; }
+      else if (c === '"') iCit = true;
+      else if (c === sep) { rad.push(felt); felt = ""; }
+      else if (c === "\n" || c === "\r") { if (c === "\r" && tekst[i+1] === "\n") i++; rad.push(felt); felt = ""; if (rad.some((x) => x.trim() !== "")) rader.push(rad); rad = []; }
+      else felt += c;
+      i++;
+    }
+    rad.push(felt); if (rad.some((x) => x.trim() !== "")) rader.push(rad);
+    return rader;
+  }
+  const norm = (s) => s.toLowerCase().replace(/æ/g,"ae").replace(/ø/g,"oe").replace(/å/g,"aa").replace(/[^a-z0-9]/g,"");
+  const ALIAS = { varenr:["varenr","varenummer","itemno","sku","artnr","artikelnr"], navn:["navn","produkt","produktnavn","beskrivelse","name"],
+    kategori:["kategori","category","gruppe","varegruppe"], pris:["pris","price","salgspris","enhedspris"], aktiv:["aktiv","active"],
+    ordrenr:["ordrenr","ordrenummer","ordre","orderno"], antal:["antal","antall","qty","quantity","maengde"], batch:["batch","parti","lot"],
+    leveringsdato:["leveringsdato","levering","leveringsdag","deliverydate","dato"], kundenr:["kundenr","kundenummer","customerno"],
+    kundenavn:["kundenavn","kunde","customer","navn"] };
+  const FELTER = { produkter:["varenr","navn","kategori","pris","aktiv"], prodordrer:["ordrenr","varenr","antal","batch","leveringsdato"],
+    kundeordrer:["ordrenr","kundenr","kundenavn","varenr","antal","leveringsdato"] };
+  const KRAV = { produkter:["varenr","navn"], prodordrer:["ordrenr","varenr","antal"], kundeordrer:["ordrenr","varenr","antal"] };
+  const TITEL = { produkter:"Import af produkter", prodordrer:"Import af produktionsordrer", kundeordrer:"Import af kundeordrer" };
+  const RPC = { produkter:"d3_import_produkter", prodordrer:"d3_import_prodordrer", kundeordrer:"d3_import_kundeordrer" };
+
+  function tilObjekter(rader, type) {
+    const hoved = rader[0].map(norm), idx = {};
+    for (const f of FELTER[type]) {
+      const kandidater = ALIAS[f]; let j = hoved.findIndex((h) => kandidater.includes(h));
+      if (f === "navn" && type === "kundeordrer") j = -1;
+      if (j >= 0) idx[f] = j;
+    }
+    if (type === "kundeordrer" && idx.kundenavn === undefined) { const j = hoved.findIndex((h) => h === "navn"); if (j >= 0) idx.kundenavn = j; }
+    const mangler = KRAV[type].filter((f) => idx[f] === undefined);
+    if (mangler.length) throw new Error("Kolonne mangler i filen: " + mangler.join(", ") + ". Fundet: " + rader[0].join(" ; "));
+    return rader.slice(1).map((r) => { const o = {}; for (const f in idx) o[f] = (r[idx[f]] ?? "").trim(); return o; });
+  }
+
+  let importType = null, importRader = null, importFil = null;
+  document.querySelectorAll("[data-import]").forEach((b) => b.addEventListener("click", () => { importType = b.dataset.import; $("fil").value = ""; $("fil").click(); }));
+  $("fil").addEventListener("change", async () => {
+    const f = $("fil").files[0]; if (!f) return;
+    try {
+      const rader = parseCsv(await f.text());
+      if (rader.length < 2) throw new Error("Filen har ingen datalinjer");
+      importRader = tilObjekter(rader, importType); importFil = f.name;
+      const svar = await rpc(RPC[importType], { p_rader:importRader, p_test:true, p_filnavn:f.name });
+      visRapport(svar, true);
+    } catch (e) { log("Import: " + e.message, "fejl"); alert("Import: " + e.message); }
+  });
+  function visRapport(r, test) {
+    $("iTitel").textContent = TITEL[importType]; $("iFil").textContent = `Fil: ${importFil} · ${importRader.length} datalinje(r)`;
+    const tal = $("iTal"); tal.replaceChildren();
+    const felter = importType === "produkter" ? [["nye","Nye"],["opdateret","Opdateres"],["uaendret","Uændret"]]
+      : importType === "kundeordrer" ? [["nye","Nye ordrer"],["linjer","Ordrelinjer"],["sprunget","Kendte (springes over)"]]
+      : [["nye","Nye ordrer"],["sprunget","Kendte (springes over)"]];
+    for (const [k, t] of felter) { const d = document.createElement("div"); const b = document.createElement("b"); b.textContent = r[k] ?? 0; d.append(b, t); tal.append(d); }
+    const fd = document.createElement("div"), fb = document.createElement("b"); fb.textContent = r.fejl.length; fb.style.color = r.fejl.length ? "var(--rod)" : ""; fd.append(fb, "Fejl"); tal.append(fd);
+    const fl = $("iFejl"); fl.replaceChildren();
+    for (const x of r.fejl) { const l = document.createElement("div"); l.textContent = `Linje ${x.linje + 1}: ${x.fejl}`; fl.append(l); }
+    $("iNote").textContent = test ? (r.fejl.length ? "Prøvekørsel – linjer med fejl springes over, resten kan gemmes." : "Prøvekørsel – intet er gemt endnu.") : "Gemt.";
+    $("iGem").classList.toggle("skjult", !test); $("iAnnuller").textContent = test ? "Annuller" : "Luk";
+    $("mImport").classList.remove("skjult");
+  }
+  $("iAnnuller").addEventListener("click", () => $("mImport").classList.add("skjult"));
+  $("iGem").addEventListener("click", async () => {
+    try { const r = await rpc(RPC[importType], { p_rader:importRader, p_test:false, p_filnavn:importFil });
+      visRapport(r, false); log(`${TITEL[importType]}: ${importFil} gemt (${r.nye} nye${r.opdateret ? ", " + r.opdateret + " opdateret" : ""}, ${r.fejl.length} fejl)`, "ok"); hentAlt(true); }
+    catch (e) { log("Import: " + e.message, "fejl"); alert(e.message); }
+  });
+
+  function hentFil(navn, linjer) {
+    const felt = (v) => { const s = v == null ? "" : String(v); return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
+    const blob = new Blob(["﻿" + linjer.map((r) => r.map(felt).join(";")).join("\r\n") + "\r\n"], { type:"text/csv;charset=utf-8" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = navn; document.body.append(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+  const stempel = () => { const d = new Date(), to = (n) => String(n).padStart(2,"0"); return `${d.getFullYear()}${to(d.getMonth()+1)}${to(d.getDate())}_${to(d.getHours())}${to(d.getMinutes())}`; };
+  const ddato = (v) => tid(v);
+
+  // Færdigmelding: én linje pr. produceret enhed i færdige produktionsordrer
+  $("eksFaerdig").addEventListener("click", async () => {
+    const ordrer = data.po.filter((o) => o.status === "faerdig" && !o.eksporteret);
+    if (!ordrer.length) { alert("Ingen færdige produktionsordrer, der ikke er eksporteret."); return; }
+    const linjer = [["Ordrenr","Varenr","Batch","ChipID","Produceret"]];
+    for (const o of ordrer) for (const e of data.enh.filter((x) => x.prodordre_id === o.id))
+      linjer.push([o.ordrenr, (o.d3_produkter || {}).varenr || "", o.batch || "", e.uid, ddato(e.produceret)]);
+    hentFil(`faerdigmelding_${stempel()}.csv`, linjer);
+    try { await rest("PATCH", `d3_prodordrer?id=in.(${ordrer.map((o) => o.id).join(",")})`, { eksporteret:new Date().toISOString() }, { Prefer:"return=minimal" });
+      log(`Færdigmelding eksporteret: ${ordrer.length} ordre(r), ${linjer.length - 1} enhed(er)`, "ok"); hentAlt(true); }
+    catch (e) { log("Eksport: " + e.message, "fejl"); }
+  });
+  $("eksFors").addEventListener("click", () => {
+    const fs = data.fs.filter((f) => !$("kunNye").checked || !f.eksporteret);
+    if (!fs.length) { alert("Ingen forsendelser at eksportere."); return; }
+    const linjer = [["Ordrenr","Kundenr","Varenr","ChipID","Sendt","Fragtnr"]];
+    for (const f of fs) { const { ko, linjer:li } = fsLinjer(f);
+      for (const l of li) for (const u of l.uids) linjer.push([ko ? ko.ordrenr : "", ko ? ko.kundenr || "" : "", l.p.varenr, u, ddato(f.sendt), f.fragtnr || ""]); }
+    hentFil(`forsendelser_${stempel()}.csv`, linjer); log(`Forsendelser eksporteret: ${fs.length}`, "ok");
+  });
+  $("eksFakt").addEventListener("click", async () => {
+    const fs = data.fs.filter((f) => !$("kunNye").checked || !f.eksporteret);
+    if (!fs.length) { alert("Ingen forsendelser at eksportere."); return; }
+    const linjer = [["Ordrenr","Kundenr","Kundenavn","Varenr","Produkt","Antal","Pris","Beløb","Sendt","Fragtnr"]];
+    for (const f of fs) { const { ko, linjer:li } = fsLinjer(f);
+      for (const l of li) { const pris = l.p.pris == null ? null : Number(l.p.pris);
+        linjer.push([ko ? ko.ordrenr : "", ko ? ko.kundenr || "" : "", ko ? ko.kundenavn || "" : "", l.p.varenr, l.p.navn, l.uids.length,
+                     komma(pris), komma(pris == null ? null : pris * l.uids.length), ddato(f.sendt), f.fragtnr || ""]); } }
+    hentFil(`fakturagrundlag_${stempel()}.csv`, linjer);
+    try { await rest("PATCH", `d3_forsendelser?id=in.(${fs.map((f) => f.id).join(",")})`, { eksporteret:new Date().toISOString() }, { Prefer:"return=minimal" });
+      log(`Fakturagrundlag eksporteret: ${fs.length} forsendelse(r) – markeret som eksporteret`, "ok"); hentAlt(true); }
+    catch (e) { log("Eksport: " + e.message, "fejl"); }
+  });
+
+  // ---------- afsend og følgeseddel ----------
+  $("koSend").addEventListener("click", async () => {
+    const o = koObj(valgtKO); if (!o) return;
+    const fragt = prompt(`Afsend kundeordre ${o.ordrenr} til ${o.kundenavn || ""}.\nFragtnummer (valgfrit):`, "");
+    if (fragt === null) return;
+    try { const r = await rpc("d3_send", { p_kundeordre:o.id, p_fragtnr:fragt });
+      if (!r.ok) { alert(r.fejl); return; }
+      log(`Kundeordre ${o.ordrenr} afsendt: ${r.enheder} enhed(er), forsendelse ${r.forsendelse}`, "ok"); await hentAlt(true); }
+    catch (e) { log("Afsend: " + e.message, "fejl"); alert(e.message); }
+  });
+  $("koFolge").addEventListener("click", () => foelgeseddel(valgtKO));
+
+  function foelgeseddel(koId) {
+    const o = koObj(koId); if (!o) return;
+    const f = data.fs.find((x) => x.kundeordre_id === o.id);
+    const enh = data.enh.filter((e) => e.kundeordre_id === o.id);
+    const w = window.open("", "_blank"); if (!w) { alert("Tillad pop-up-vinduer for at vise følgesedlen."); return; }
+    const d = w.document;
+    d.title = `Følgeseddel ${o.ordrenr}`;
+    const st = d.createElement("style");
+    st.textContent = `body{font:14px/1.45 system-ui,"Segoe UI",sans-serif;margin:32px;color:#1f1d1a} h1{font-size:24px;margin:0 0 4px}
+      table{border-collapse:collapse;width:100%;margin-top:18px} th,td{border:1px solid #cfc9bf;padding:6px 8px;text-align:left;vertical-align:top}
+      th{background:#f0ede7} .mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px} .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 30px;margin-top:14px}
+      .svag{color:#6b665d} .knap{margin-top:20px} @media print{.knap{display:none} body{margin:12mm}}`;
+    d.head.append(st);
+    const el = (tag, tekst, cls) => { const x = d.createElement(tag); if (tekst != null) x.textContent = tekst; if (cls) x.className = cls; return x; };
+    d.body.append(el("h1", "Følgeseddel"), el("div", "NFC-sporing – demo", "svag"));
+    const g = el("div", null, "grid");
+    for (const [k, v] of [["Ordrenr", o.ordrenr], ["Kunde", `${o.kundenavn || ""}${o.kundenr ? " (" + o.kundenr + ")" : ""}`],
+                          ["Leveringsdato", o.leveringsdato || "–"], ["Sendt", f ? tid(f.sendt) : "ikke afsendt endnu"], ["Fragtnr", f && f.fragtnr ? f.fragtnr : "–"],
+                          ["Antal enheder", String(enh.length)]]) { const x = el("div"); x.append(el("b", k + ": "), v); g.append(x); }
+    d.body.append(g);
+    const t = el("table"), hr = el("tr"); ["Varenr","Produkt","Bestilt","Leveret","Enheds-ID'er (NFC)"].forEach((h) => hr.append(el("th", h))); t.append(hr);
+    for (const l of koLinjer(o)) { const tr = el("tr");
+      tr.append(el("td", l.p.varenr), el("td", l.p.navn), el("td", String(l.antal)), el("td", String(l.enh.length)), el("td", l.enh.map((e) => e.uid).join("\n"), "mono"));
+      tr.lastChild.style.whiteSpace = "pre-line"; t.append(tr); }
+    d.body.append(t);
+    d.body.append(el("p", "Hver enhet kan kontrolleres ved å holde en mobil mot NFC-brikken, eller på " + KUNDESIDE + "?id=<ID uten kolon>", "svag"));
+    const b = el("button", "Skriv ut / gem som PDF", "knap"); b.onclick = () => w.print(); d.body.append(b);
+    log(`Følgeseddel vist for ${o.ordrenr}`, "info");
+  }
+
+  // ---------- chip-detaljer ----------
+  function visDetaljer(e) {
+    const dd = e.detaljer; if (!dd || typeof dd !== "object") { alert("Der er ingen chip-detaljer gemt for denne enhed."); return; }
+    $("dType").textContent = dd.chipType || "Ukendt"; $("dUid").textContent = dd.uid || e.uid; $("dTid").textContent = "Scannet " + tid(dd.tid);
+    const sek = $("dSek"); sek.replaceChildren();
+    for (const s of (dd.sektioner || [])) { const h = document.createElement("h3"); h.textContent = s.navn || ""; sek.append(h);
+      const dl = document.createElement("dl"); for (const f of (s.felter || [])) { const dt = document.createElement("dt"), ddd = document.createElement("dd");
+        dt.textContent = f.navn || ""; ddd.textContent = f.vaerdi || ""; dl.append(dt, ddd); } sek.append(dl); }
+    $("mDet").classList.remove("skjult");
+  }
+  $("dLuk").addEventListener("click", () => $("mDet").classList.add("skjult"));
+
+  // ---------- faner, auto ----------
+  $("faner").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return;
+    document.querySelectorAll("#faner button").forEach((x) => x.classList.toggle("aktiv", x === b));
+    ["enheder","produkter","prod","kunde","fors","haend","importlog"].forEach((f) => $("fane-" + f).classList.toggle("skjult", f !== b.dataset.fane)); });
+  $("filter").addEventListener("change", visEnheder);
+  $("opdater").addEventListener("click", () => hentAlt(false));
+  function stopAuto() { if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; } }
+  function planlaegAuto() { stopAuto(); if (session) autoTimer = setTimeout(() => {
+    if ($("auto").checked && !document.hidden && $("mImport").classList.contains("skjult")) hentAlt(true); else planlaegAuto(); }, 10000); }
+
+  try { const s = JSON.parse(sessionStorage.getItem("nfc_ov3") || "null"); if (s && s.refresh_token) { session = s; visApp(); } } catch (_) {}
+</script>
+</body>
+</html>
