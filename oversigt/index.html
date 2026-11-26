@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NFC demo 2 – oversigt</title>
+<!-- NFC demo 2 – oversigt (web), version 261126l. Kun visning + CSV-eksport af ordrer. -->
+<style>
+  :root {
+    --bg: #f4f3ef; --kort: #fff; --tekst: #1f1d1a; --svag: #6b665d; --linje: #e2ded6;
+    --aksent: #d9822b; --aksent-mork: #8a5216;
+    --bla: #1565c0; --gron: #2e7d32; --graa: #757575; --rod: #c62828; --gul: #fff3c4;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--tekst); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { background: #2b2722; color: #fff; padding: 10px 18px; display: flex; align-items: center; gap: 14px; }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .ver { color: #cfc8bd; font-size: 12px; }
+  header .bruger { margin-left: auto; font-size: 13px; color: #cfc8bd; }
+  main { padding: 14px 18px 18px; max-width: 1500px; margin: 0 auto; }
+  .kort { background: var(--kort); border: 1px solid var(--linje); border-radius: 10px; }
+  button, select, input { font: inherit; }
+  button { padding: 6px 14px; border: 1px solid #c9c3b8; background: #fff; border-radius: 6px; cursor: pointer; }
+  button:hover { background: #f7f3ec; }
+  button.primaer { background: var(--aksent); border-color: var(--aksent); color: #fff; font-weight: 600; }
+  input { padding: 8px 10px; border: 1px solid #c9c3b8; border-radius: 6px; width: 100%; }
+  .skjult { display: none !important; }
+
+  /* login */
+  #login { max-width: 380px; margin: 60px auto; padding: 24px; }
+  #login h2 { margin: 0 0 14px; font-size: 20px; }
+  #login label { display: block; color: var(--svag); margin: 10px 0 4px; }
+  #login button { width: 100%; margin-top: 18px; padding: 10px; }
+  #loginFejl { color: var(--rod); margin-top: 10px; min-height: 1em; }
+
+  /* overblik og værktøjslinje */
+  .linje { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  #overblik { font-size: 16px; font-weight: 700; }
+  .hojre { margin-left: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  /* faner */
+  .faner { display: flex; gap: 2px; }
+  .faner button { border-radius: 8px 8px 0 0; border-bottom: none; background: #ebe7e0; }
+  .faner button.aktiv { background: #fff; font-weight: 600; }
+  .fane { padding: 0; border-top-left-radius: 0; overflow: hidden; }
+  .tabelboks { max-height: 52vh; overflow: auto; }
+  .tabelboks.lav { max-height: 30vh; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { padding: 5px 10px; text-align: left; border-bottom: 1px solid #eeebe5; white-space: nowrap; }
+  th { position: sticky; top: 0; background: #f0ede7; font-weight: 600; z-index: 1; }
+  td.tal { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr:hover { background: #faf7f1; }
+  tr.valgt { background: #fdecd6 !important; }
+  tr.produceret td { color: var(--bla); }
+  tr.registreret td { color: var(--gron); }
+  tr.udskiftet td { color: var(--graa); }
+  tr.kasseret td { color: var(--rod); }
+  tr.ny-h td { background: var(--gul); }
+  tr.ordre-ny td { color: var(--bla); }
+  .mono { font-family: ui-monospace, Consolas, monospace; }
+  .underhoved { padding: 8px 12px; font-weight: 600; color: var(--aksent-mork); border-top: 1px solid var(--linje); background: #fbfaf7; }
+  .ordrelinje { padding: 8px 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--linje); }
+  .tom { padding: 14px; color: var(--svag); }
+
+  /* log */
+  #log { margin-top: 12px; padding: 8px 12px; font: 12px/1.5 ui-monospace, Consolas, monospace; max-height: 120px; overflow: auto; }
+  #log .info { color: #0645ad; } #log .ok { color: #08780a; } #log .fejl { color: #c00000; }
+
+  /* detaljer */
+  #detaljer { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  #detaljer .kort { width: min(640px, 100%); max-height: 85vh; overflow: auto; padding: 18px 20px; }
+  #detaljer h2 { margin: 0; color: #e65100; }
+  #detaljer h3 { color: #0645ad; font-size: 14px; margin: 14px 0 4px; }
+  #detaljer dl { display: grid; grid-template-columns: 170px 1fr; gap: 2px 10px; margin: 0; }
+  #detaljer dt { color: var(--svag); } #detaljer dd { margin: 0; font-family: ui-monospace, Consolas, monospace; word-break: break-all; }
+  .knapper { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>NFC demo 2 – oversigt</h1><span class="ver">v261126l · kun visning</span>
+  <span class="bruger" id="bruger"></span>
+</header>
+
+<main>
+  <!-- Login -->
+  <section id="login" class="kort">
+    <h2>Log ind</h2>
+    <form id="loginForm">
+      <label for="email">E-mail</label>
+      <input id="email" type="email" autocomplete="username" required>
+      <label for="kode">Adgangskode</label>
+      <input id="kode" type="password" autocomplete="current-password" required>
+      <button class="primaer" type="submit">Log ind</button>
+      <div id="loginFejl"></div>
+    </form>
+  </section>
+
+  <!-- Oversigt -->
+  <section id="app" class="skjult">
+    <div class="linje">
+      <span id="overblik">–</span>
+      <div class="hojre">
+        <label>Status:
+          <select id="filter">
+            <option>alle</option><option>produceret</option><option>registreret</option>
+            <option>udskiftet</option><option>kasseret</option>
+          </select></label>
+        <label><input type="checkbox" id="auto" checked style="width:auto"> Auto-opdater hvert 10. sek.</label>
+        <button id="opdater">Opdater</button>
+        <button id="logud">Log ud</button>
+      </div>
+    </div>
+
+    <div class="faner" id="faner">
+      <button data-fane="chips" class="aktiv">Chips</button>
+      <button data-fane="haend">Hændelser (seneste 300)</button>
+      <button data-fane="tt">Tandtyper</button>
+      <button data-fane="ordrer">Ordrer</button>
+    </div>
+
+    <div class="kort fane" id="fane-chips">
+      <div class="tabelboks">
+        <table><thead><tr><th>uid</th><th>tandtype</th><th>batch</th><th>status</th><th>kunde</th><th>garanti til</th><th>produceret</th><th>rettet</th></tr></thead>
+        <tbody id="tbChips"></tbody></table>
+      </div>
+      <div class="underhoved" id="chipHTitel">Hændelser for valgt chip – klik på en chip (dobbeltklik: chip-detaljer)</div>
+      <div class="tabelboks lav">
+        <table><thead><tr><th>tid</th><th>type</th><th>kilde</th><th>tekst</th></tr></thead>
+        <tbody id="tbChipH"></tbody></table>
+      </div>
+    </div>
+
+    <div class="kort fane skjult" id="fane-haend">
+      <div class="tabelboks" style="max-height:72vh">
+        <table><thead><tr><th>tid</th><th>chip</th><th>type</th><th>kilde</th><th>tekst</th></tr></thead>
+        <tbody id="tbH"></tbody></table>
+      </div>
+    </div>
+
+    <div class="kort fane skjult" id="fane-tt">
+      <div class="tabelboks">
+        <table><thead><tr><th>varenr</th><th>navn</th><th>pris NOK</th><th>aktiv</th><th>antal chips</th></tr></thead>
+        <tbody id="tbTT"></tbody></table>
+      </div>
+    </div>
+
+    <div class="kort fane skjult" id="fane-ordrer">
+      <div class="ordrelinje"><span id="ordreInfo">–</span><button id="csv" style="margin-left:auto">Eksportér CSV …</button></div>
+      <div class="tabelboks" style="max-height:66vh">
+        <table><thead><tr><th>nr</th><th>dato</th><th>kunde</th><th>varenr</th><th>tandtype</th><th>antal</th><th>pris NOK</th><th>beløb NOK</th><th>status</th><th>fra chip</th></tr></thead>
+        <tbody id="tbO"></tbody></table>
+      </div>
+    </div>
+
+    <div id="log" class="kort"></div>
+  </section>
+</main>
+
+<!-- Chip-detaljer -->
+<div id="detaljer" class="skjult">
+  <div class="kort">
+    <h2 id="dType"></h2>
+    <div class="mono" id="dUid" style="font-weight:700;font-size:16px"></div>
+    <div id="dTid" style="color:var(--svag);font-size:12px"></div>
+    <div id="dSek"></div>
+    <div class="knapper"><button id="dKopier">Kopiér alt</button><button id="dLuk" class="primaer">Luk</button></div>
+  </div>
+</div>
+
+<script>
+  // ---- Indstillinger (kun publishable key – ALDRI secret key) ----
+  const SUPABASE_URL = "https://yctucjpdhpxyhsdxrxow.supabase.co";
+  const KEY = "sb_publishable_qTQTBe4enPihWMrL8PnaUA_ZtiRAyvM";
+  const VERSION = "261126l";
+  const CHIP_SELECT = "uid,batch,status,produceret,rettet,detaljer,tandtyper(varenr,navn),registreringer(kunde_navn,maskine,garanti_slut)";
+
+  const $ = (id) => document.getElementById(id);
+  let session = null;          // {access_token, refresh_token, udloeber, email}
+  let chips = [], haend = [], tandtyper = [], ordrer = [];
+  let valgtUid = null, sidsteH = null, autoTimer = null, henter = false;
+
+  // ---------- hjælpere ----------
+  function log(tekst, klasse) {
+    const d = new Date(), to = (n) => String(n).padStart(2, "0");
+    const linje = document.createElement("div");
+    if (klasse) linje.className = klasse;
+    linje.textContent = `${to(d.getHours())}:${to(d.getMinutes())}:${to(d.getSeconds())}  ${tekst}`;
+    $("log").append(linje);
+    $("log").scrollTop = $("log").scrollHeight;
+  }
+  function tid(v) {
+    if (!v) return "";
+    const d = new Date(v);
+    if (isNaN(d)) return String(v);
+    const to = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${to(d.getMonth()+1)}-${to(d.getDate())} ${to(d.getHours())}:${to(d.getMinutes())}:${to(d.getSeconds())}`;
+  }
+  function celle(tr, tekst, klasse) {
+    const td = document.createElement("td");
+    td.textContent = tekst == null ? "" : String(tekst);
+    if (klasse) td.className = klasse;
+    tr.append(td);
+    return td;
+  }
+  function tom(tbody, kol, tekst) {
+    const tr = document.createElement("tr"), td = document.createElement("td");
+    td.colSpan = kol; td.className = "tom"; td.textContent = tekst; tr.append(td); tbody.append(tr);
+  }
+  const reg1 = (c) => Array.isArray(c.registreringer) ? (c.registreringer[0] || null) : (c.registreringer || null);
+  const tt = (o) => o.tandtyper || {};
+  const tal2 = (v) => (v == null ? "" : Number(v).toLocaleString("da-DK", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+  function gemSession(s) {
+    session = s;
+    try { s ? sessionStorage.setItem("nfc_oversigt", JSON.stringify(s)) : sessionStorage.removeItem("nfc_oversigt"); } catch (_) {}
+  }
+
+  // ---------- Supabase (fetch) ----------
+  async function auth(params, body) {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=${params}`, {
+      method: "POST", headers: { apikey: KEY, "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error_description || d.msg || d.message || ("HTTP " + r.status));
+    return {
+      access_token: d.access_token, refresh_token: d.refresh_token,
+      udloeber: Date.now() + (d.expires_in || 3600) * 1000, email: d.user && d.user.email,
+    };
+  }
+  async function sikrToken() {
+    if (session && Date.now() > session.udloeber - 60000) {
+      const ny = await auth("refresh_token", { refresh_token: session.refresh_token });
+      ny.email = ny.email || session.email;
+      gemSession(ny);
+    }
+  }
+  async function hent(tabel, params) {
+    await sikrToken();
+    const q = new URLSearchParams(params).toString();
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${tabel}?${q}`, {
+      headers: { apikey: KEY, Authorization: "Bearer " + session.access_token },
+    });
+    const d = await r.json().catch(() => null);
+    if (r.status === 401) { throw new Error("Login er udløbet – log ind igen"); }
+    if (!r.ok) throw new Error((d && (d.message || d.hint)) || ("HTTP " + r.status));
+    return d;
+  }
+
+  // ---------- login ----------
+  $("loginForm").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    $("loginFejl").textContent = "";
+    try {
+      gemSession(await auth("password", { email: $("email").value.trim(), password: $("kode").value }));
+      $("kode").value = "";
+      visApp();
+    } catch (e) {
+      $("loginFejl").textContent = "Login fejlede: " + e.message;
+    }
+  });
+  $("logud").addEventListener("click", () => {
+    stopAuto(); gemSession(null);
+    chips = haend = tandtyper = ordrer = []; valgtUid = null; sidsteH = null;
+    $("app").classList.add("skjult"); $("login").classList.remove("skjult"); $("bruger").textContent = "";
+  });
+  function visApp() {
+    $("login").classList.add("skjult"); $("app").classList.remove("skjult");
+    $("bruger").textContent = "Logget ind: " + (session.email || "");
+    $("log").replaceChildren();
+    log(`NFC demo 2 – oversigt (web) version ${VERSION}`, "info");
+    log("Logget ind som " + (session.email || ""), "ok");
+    hentAlt(false);
+  }
+
+  // ---------- hent og vis ----------
+  async function hentAlt(auto) {
+    if (henter || !session) return;
+    henter = true;
+    try {
+      const [c, h, t, o] = await Promise.all([
+        hent("chips", { select: CHIP_SELECT, order: "produceret.desc" }),
+        hent("haendelser", { select: "*", order: "tid.desc", limit: "300" }),
+        hent("tandtyper", { select: "*", order: "varenr" }),
+        hent("ordrer", { select: "id,oprettet,kunde_navn,antal,status,fra_chip,tandtyper(varenr,navn,pris_nok)", order: "id.desc" }),
+      ]);
+      chips = c; tandtyper = t; ordrer = o;
+      const nyeIds = new Set();
+      if (sidsteH !== null) h.forEach((x) => { if (x.id > sidsteH) nyeIds.add(x.id); });
+      sidsteH = h.length ? Math.max(...h.map((x) => x.id)) : (sidsteH ?? 0);
+      haend = h;
+      visChips(); visHaend(nyeIds); visTT(); visOrdrer(); visOverblik();
+      if (nyeIds.size) log(`${nyeIds.size} ny(e) hændelse(r)`, "info");
+      if (!auto) log(`Hentet ${c.length} chips, ${h.length} hændelser, ${t.length} tandtyper, ${o.length} ordrer`, "ok");
+      if (valgtUid) await visChipH(valgtUid, true);
+    } catch (e) {
+      log("Hent: " + e.message, "fejl");
+      if (/udløbet/.test(e.message)) $("logud").click();
+    } finally {
+      henter = false;
+      planlaegAuto();
+    }
+  }
+
+  function visOverblik() {
+    const n = { produceret: 0, registreret: 0, udskiftet: 0, kasseret: 0 };
+    chips.forEach((c) => { n[c.status] = (n[c.status] || 0) + 1; });
+    const nye = ordrer.filter((o) => o.status === "ny").length;
+    $("overblik").textContent =
+      `Chips: ${chips.length}  ·  produceret ${n.produceret}  ·  registreret ${n.registreret}  ·  ` +
+      `udskiftet ${n.udskiftet}  ·  ordrer ${ordrer.length} (nye ${nye})`;
+  }
+
+  function visChips() {
+    const tb = $("tbChips"), f = $("filter").value;
+    tb.replaceChildren();
+    const liste = chips.filter((c) => f === "alle" || c.status === f);
+    if (!liste.length) { tom(tb, 8, "Ingen chips"); return; }
+    for (const c of liste) {
+      const tr = document.createElement("tr"), r = reg1(c) || {}, t = c.tandtyper || {};
+      tr.className = c.status + (c.uid === valgtUid ? " valgt" : "");
+      celle(tr, c.uid, "mono");
+      celle(tr, `${t.varenr || ""} ${t.navn || ""}`.trim());
+      celle(tr, c.batch || "");
+      celle(tr, c.status);
+      celle(tr, r.kunde_navn || "");
+      celle(tr, (["udskiftet", "kasseret"].includes(c.status) && reg1(c)) ? "afsluttet" : (r.garanti_slut || ""));
+      celle(tr, tid(c.produceret));
+      celle(tr, tid(c.rettet));
+      tr.addEventListener("click", () => vaelgChip(c.uid));
+      tr.addEventListener("dblclick", () => visDetaljer(c));
+      tb.append(tr);
+    }
+  }
+  async function vaelgChip(uid) {
+    valgtUid = uid;
+    document.querySelectorAll("#tbChips tr").forEach((tr) => tr.classList.toggle("valgt", tr.firstChild && tr.firstChild.textContent === uid));
+    await visChipH(uid, false);
+  }
+  async function visChipH(uid, stille) {
+    try {
+      const rows = await hent("haendelser", { select: "*", chip_uid: "eq." + uid, order: "tid.desc" });
+      $("chipHTitel").textContent = `Hændelser for ${uid} (${rows.length}) – dobbeltklik på chippen: chip-detaljer`;
+      const tb = $("tbChipH"); tb.replaceChildren();
+      if (!rows.length) tom(tb, 4, "Ingen hændelser");
+      for (const h of rows) {
+        const tr = document.createElement("tr");
+        celle(tr, tid(h.tid)); celle(tr, h.type); celle(tr, h.kilde); celle(tr, h.tekst || "");
+        tb.append(tr);
+      }
+      if (!stille) log(`Chip ${uid}: ${rows.length} hændelse(r)`, "info");
+    } catch (e) { log("Hændelser: " + e.message, "fejl"); }
+  }
+
+  function visHaend(nyeIds) {
+    const tb = $("tbH"); tb.replaceChildren();
+    if (!haend.length) { tom(tb, 5, "Ingen hændelser"); return; }
+    for (const h of haend) {
+      const tr = document.createElement("tr");
+      if (nyeIds.has(h.id)) tr.className = "ny-h";
+      celle(tr, tid(h.tid)); celle(tr, h.chip_uid || "", "mono"); celle(tr, h.type); celle(tr, h.kilde); celle(tr, h.tekst || "");
+      tb.append(tr);
+    }
+  }
+
+  function visTT() {
+    const antal = {};
+    chips.forEach((c) => { const v = (c.tandtyper || {}).varenr; antal[v] = (antal[v] || 0) + 1; });
+    const tb = $("tbTT"); tb.replaceChildren();
+    for (const t of tandtyper) {
+      const tr = document.createElement("tr");
+      celle(tr, t.varenr); celle(tr, t.navn); celle(tr, tal2(t.pris_nok), "tal");
+      celle(tr, t.aktiv ? "ja" : "nej"); celle(tr, antal[t.varenr] || 0, "tal");
+      tb.append(tr);
+    }
+  }
+
+  function ordreLinje(o) {
+    const t = tt(o), pris = t.pris_nok == null ? null : Number(t.pris_nok), antal = o.antal || 0;
+    return { t, pris, antal, beloeb: pris == null ? null : pris * antal };
+  }
+  function visOrdrer() {
+    const tb = $("tbO"); tb.replaceChildren();
+    let total = 0;
+    if (!ordrer.length) tom(tb, 10, "Ingen ordrer");
+    for (const o of ordrer) {
+      const { t, pris, antal, beloeb } = ordreLinje(o);
+      total += beloeb || 0;
+      const tr = document.createElement("tr");
+      if (o.status === "ny") tr.className = "ordre-ny";
+      celle(tr, o.id, "tal"); celle(tr, tid(o.oprettet)); celle(tr, o.kunde_navn || ""); celle(tr, t.varenr || "");
+      celle(tr, t.navn || ""); celle(tr, antal, "tal"); celle(tr, tal2(pris), "tal"); celle(tr, tal2(beloeb), "tal");
+      celle(tr, o.status); celle(tr, o.fra_chip || "", "mono");
+      tb.append(tr);
+    }
+    const nye = ordrer.filter((o) => o.status === "ny").length;
+    const iAlt = total.toLocaleString("da-DK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    $("ordreInfo").textContent = `${ordrer.length} ordre(r), heraf ${nye} nye  ·  i alt ${iAlt} NOK`;
+  }
+
+  // ---------- CSV (dansk Excel: semikolon, decimalkomma, BOM) ----------
+  $("csv").addEventListener("click", () => {
+    if (!ordrer.length) { alert("Der er ingen ordrer at eksportere."); return; }
+    const felt = (v) => {
+      const s = v == null ? "" : String(v);
+      return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const komma = (v) => (v == null ? "" : v.toFixed(2).replace(".", ","));
+    const linjer = [["Ordre nr", "Dato", "Kunde", "Varenr", "Tandtype", "Antal", "Pris NOK", "Beløb NOK", "Status", "Fra chip"].join(";")];
+    [...ordrer].sort((a, b) => a.id - b.id).forEach((o) => {
+      const { t, pris, antal, beloeb } = ordreLinje(o);
+      linjer.push([o.id, tid(o.oprettet), o.kunde_navn || "", t.varenr || "", t.navn || "", antal,
+                   komma(pris), komma(beloeb), o.status, o.fra_chip || ""].map(felt).join(";"));
+    });
+    const blob = new Blob(["﻿" + linjer.join("\r\n") + "\r\n"], { type: "text/csv;charset=utf-8" });
+    const d = new Date(), to = (n) => String(n).padStart(2, "0");
+    const navn = `ordrer_${d.getFullYear()}${to(d.getMonth()+1)}${to(d.getDate())}_${to(d.getHours())}${to(d.getMinutes())}.csv`;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = navn; document.body.append(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    log(`${ordrer.length} ordre(r) eksporteret til ${navn} (Overførsler)`, "ok");
+  });
+
+  // ---------- chip-detaljer ----------
+  let detaljeTekst = "";
+  function visDetaljer(c) {
+    const d = c.detaljer;
+    if (!d || typeof d !== "object") { alert("Der er ingen chip-detaljer gemt for denne chip."); return; }
+    $("dType").textContent = d.chipType || "Ukendt";
+    $("dUid").textContent = d.uid || c.uid;
+    $("dTid").textContent = "Scannet " + tid(d.tid);
+    const sek = $("dSek"); sek.replaceChildren();
+    const linjer = [d.chipType || "", "UID: " + (d.uid || c.uid), "Scannet: " + tid(d.tid)];
+    for (const s of (d.sektioner || [])) {
+      const h = document.createElement("h3"); h.textContent = s.navn || ""; sek.append(h);
+      const dl = document.createElement("dl");
+      linjer.push("", "[" + (s.navn || "") + "]");
+      for (const f of (s.felter || [])) {
+        const dt = document.createElement("dt"), dd = document.createElement("dd");
+        dt.textContent = f.navn || ""; dd.textContent = f.vaerdi || ""; dl.append(dt, dd);
+        linjer.push(f.vaerdi ? `${f.navn}: ${f.vaerdi}` : (f.navn || ""));
+      }
+      sek.append(dl);
+    }
+    detaljeTekst = linjer.join("\n");
+    $("detaljer").classList.remove("skjult");
+  }
+  $("dLuk").addEventListener("click", () => $("detaljer").classList.add("skjult"));
+  $("detaljer").addEventListener("click", (e) => { if (e.target.id === "detaljer") $("detaljer").classList.add("skjult"); });
+  $("dKopier").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(detaljeTekst); log("Chip-detaljer kopieret", "ok"); }
+    catch (_) { log("Kunne ikke kopiere (browseren tillod det ikke)", "fejl"); }
+  });
+
+  // ---------- faner, filter, auto ----------
+  $("faner").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    document.querySelectorAll("#faner button").forEach((x) => x.classList.toggle("aktiv", x === b));
+    ["chips", "haend", "tt", "ordrer"].forEach((f) => $("fane-" + f).classList.toggle("skjult", f !== b.dataset.fane));
+  });
+  $("filter").addEventListener("change", visChips);
+  $("opdater").addEventListener("click", () => hentAlt(false));
+  function stopAuto() { if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; } }
+  function planlaegAuto() {
+    stopAuto();
+    if (session) autoTimer = setTimeout(() => { if ($("auto").checked && !document.hidden) hentAlt(true); else planlaegAuto(); }, 10000);
+  }
+
+  // ---------- start: genbrug session i samme fane ----------
+  try {
+    const s = JSON.parse(sessionStorage.getItem("nfc_oversigt") || "null");
+    if (s && s.refresh_token) { session = s; visApp(); }
+  } catch (_) {}
+</script>
+</body>
+</html>
