@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NFC demo 3 – oversigt</title>
-<!-- NFC demo 3 – oversigt (web), version 261126s. ERP-import/eksport, ordrer, afsendelse, følgeseddel. -->
+<!-- NFC demo 3 – oversigt (web), version 261127a. ERP-import/eksport, ordrer, afsendelse, følgeseddel. -->
 <style>
   :root { --bg:#f4f3ef; --kort:#fff; --tekst:#1f1d1a; --svag:#6b665d; --linje:#e2ded6; --aksent:#d9822b; --aksent-mork:#8a5216;
           --bla:#1565c0; --gron:#2e7d32; --graa:#757575; --rod:#c62828; --lilla:#6a1b9a; --tyrkis:#00838f; --gul:#fff3c4; }
@@ -70,7 +70,7 @@
 </head>
 <body>
 <header>
-  <h1>NFC demo 3 – oversigt</h1><span class="ver">v261126s · ordreflyt med ERP</span>
+  <h1>NFC demo 3 – oversigt</h1><span class="ver">v261127a · ordreflyt med ERP</span>
   <span class="bruger" id="bruger"></span>
 </header>
 
@@ -206,7 +206,7 @@
 <script>
   const SUPABASE_URL = "https://yctucjpdhpxyhsdxrxow.supabase.co";
   const KEY = "sb_publishable_qTQTBe4enPihWMrL8PnaUA_ZtiRAyvM";   // kun publishable key
-  const VERSION = "261126s";
+  const VERSION = "261127a";
   const KUNDESIDE = "https://leifibsen.github.io/nfc/v3/";
   const $ = (id) => document.getElementById(id);
   const STATUS_TEKST = { produceret:"produceret", paa_lager:"på lager", plukket:"plukket", sendt:"sendt", leveret:"leveret",
@@ -264,11 +264,11 @@
     if (henter || !session) return; henter = true;
     try {
       const [enh, prod, po, ko, fs, h, il] = await Promise.all([
-        hent("d3_enheder", { select:"uid,status,batch,produceret,rettet,detaljer,produkt_id,prodordre_id,kundeordre_id,forsendelse_id,d3_produkter(varenr,navn,kategori),d3_registreringer(kunde_navn,garanti_slut)", order:"produceret.desc" }),
+        hent("d3_enheder", { select:"uid,status,batch,produceret,rettet,detaljer,produkt_id,prodordre_id,kundeordre_id,forsendelse_id,d3_produkter!produkt_id(varenr,navn,kategori),d3_registreringer(kunde_navn,garanti_slut)", order:"produceret.desc" }),
         hent("d3_produkter", { select:"*", order:"varenr" }),
-        hent("d3_prodordrer", { select:"*,d3_produkter(varenr,navn)", order:"id.desc" }),
-        hent("d3_kundeordrer", { select:"*,d3_ordrelinjer(antal,produkt_id,d3_produkter(varenr,navn,pris))", order:"id.desc" }),
-        hent("d3_forsendelser", { select:"*,d3_kundeordrer(ordrenr,kundenr,kundenavn)", order:"id.desc" }),
+        hent("d3_prodordrer", { select:"*,d3_produkter!produkt_id(varenr,navn)", order:"id.desc" }),
+        hent("d3_kundeordrer", { select:"*,d3_ordrelinjer(antal,produkt_id,d3_produkter!produkt_id(varenr,navn,pris))", order:"id.desc" }),
+        hent("d3_forsendelser", { select:"*,d3_kundeordrer!kundeordre_id(ordrenr,kundenr,kundenavn)", order:"id.desc" }),
         hent("d3_haendelser", { select:"*", order:"tid.desc", limit:"300" }),
         hent("d3_importlog", { select:"*", order:"id.desc", limit:"100" }),
       ]);
